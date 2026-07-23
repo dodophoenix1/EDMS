@@ -1,65 +1,223 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState } from 'react';
+import { UserRole, DocumentItem } from '@/lib/types';
+import { Header } from '@/components/Header';
+import { RoleSwitcher } from '@/components/RoleSwitcher';
+import { DocumentList } from '@/components/DocumentList';
+import { PublicSearchSection } from '@/components/PublicSearchSection';
+import { AuditLogViewer } from '@/components/AuditLogViewer';
+import { DocumentUploadModal } from '@/components/DocumentUploadModal';
+import { DocumentPreviewModal } from '@/components/DocumentPreviewModal';
+import { PublicPinGateModal } from '@/components/PublicPinGateModal';
+import { AdminPinModal } from '@/components/AdminPinModal';
+import { FileText, ShieldCheck, HardDrive, Cpu } from 'lucide-react';
 
 export default function Home() {
+  // Theme State: Default to Light Mode for clear & comfortable reading
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  // Gate 1: Main Website Access PIN (1234)
+  const [isPublicPinAuthenticated, setIsPublicPinAuthenticated] = useState<boolean>(false);
+
+  // Gate 2: Admin Portal Passcode (admin2569)
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+  const [showAdminModal, setShowAdminModal] = useState<boolean>(false);
+
+  const [viewMode, setViewMode] = useState<'public' | 'admin'>('public');
+  const [adminTab, setAdminTab] = useState<'documents' | 'audit_logs'>('documents');
+
+  const [currentRole, setCurrentRole] = useState<UserRole>('super_admin');
+  const [currentUserName, setCurrentUserName] = useState<string>('นายสมชาย ใจดี (ผู้อำนวยการโรงเรียนฝางวิทยายน)');
+
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
+  const [previewState, setPreviewState] = useState<{
+    doc: DocumentItem;
+    isDownload: boolean;
+  } | null>(null);
+
+  const isLight = theme === 'light';
+
+  const handleRoleChange = (role: UserRole, name: string) => {
+    setCurrentRole(role);
+    setCurrentUserName(name);
+  };
+
+  const handleAdminClick = () => {
+    if (isAdminAuthenticated) {
+      setViewMode('admin');
+    } else {
+      setShowAdminModal(true);
+    }
+  };
+
+  const handlePublicClick = () => {
+    setViewMode('public');
+  };
+
+  const handleAdminSuccess = () => {
+    setIsAdminAuthenticated(true);
+    setShowAdminModal(false);
+    setViewMode('admin');
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdminAuthenticated(false);
+    setViewMode('public');
+  };
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <div className={`min-h-screen flex flex-col font-sans transition-colors selection:bg-emerald-500 selection:text-white ${
+      isLight ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-100'
+    }`}>
+      {/* GATE 1: Public Website Access Gate (PIN Verification) */}
+      {!isPublicPinAuthenticated && (
+        <PublicPinGateModal onSuccess={() => setIsPublicPinAuthenticated(true)} />
+      )}
+
+      {/* Main Website Header */}
+      <Header
+        viewMode={viewMode}
+        isAdminAuthenticated={isAdminAuthenticated}
+        onAdminClick={handleAdminClick}
+        onPublicClick={handlePublicClick}
+        onAdminLogout={handleAdminLogout}
+        adminTab={adminTab}
+        onAdminTabChange={setAdminTab}
+        currentRole={currentRole}
+        onOpenUpload={() => setIsUploadModalOpen(true)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
+
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* PUBLIC SEARCH VIEW ( Shown after PIN 1234 verification ) */}
+        {viewMode === 'public' && isPublicPinAuthenticated && (
+          <PublicSearchSection
+            onPreview={(doc) => setPreviewState({ doc, isDownload: false })}
+            onDownload={(doc) => setPreviewState({ doc, isDownload: true })}
+            theme={theme}
+          />
+        )}
+
+        {/* ADMIN PORTAL VIEW ( Shown after admin2569 passcode verification ) */}
+        {viewMode === 'admin' && isAdminAuthenticated && (
+          <div className="space-y-6">
+            {/* RBAC Role Switcher */}
+            <RoleSwitcher
+              currentRole={currentRole}
+              currentUserName={currentUserName}
+              onRoleChange={handleRoleChange}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+
+            {/* Admin Metrics */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className={`border rounded-xl p-3.5 shadow-sm flex items-center space-x-3 transition-colors ${
+                isLight ? 'bg-white border-slate-200' : 'bg-slate-900/90 border-slate-800/80'
+              }`}>
+                <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-600">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className={`text-[11px] font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>โรงเรียนฝางวิทยายน</div>
+                  <div className="text-sm font-bold font-mono text-emerald-600">Supabase Connected</div>
+                </div>
+              </div>
+
+              <div className={`border rounded-xl p-3.5 shadow-sm flex items-center space-x-3 transition-colors ${
+                isLight ? 'bg-white border-slate-200' : 'bg-slate-900/90 border-slate-800/80'
+              }`}>
+                <div className="p-2.5 bg-sky-50 border border-sky-200 rounded-lg text-sky-600">
+                  <HardDrive className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className={`text-[11px] font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Google Drive Folder</div>
+                  <div className="text-sm font-bold font-mono text-sky-600">Direct Upload</div>
+                </div>
+              </div>
+
+              <div className={`border rounded-xl p-3.5 shadow-sm flex items-center space-x-3 transition-colors ${
+                isLight ? 'bg-white border-slate-200' : 'bg-slate-900/90 border-slate-800/80'
+              }`}>
+                <div className="p-2.5 bg-purple-50 border border-purple-200 rounded-lg text-purple-600">
+                  <Cpu className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className={`text-[11px] font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Gemini 1.5 Flash</div>
+                  <div className="text-sm font-bold font-mono text-purple-600">AI OCR Active</div>
+                </div>
+              </div>
+
+              <div className={`border rounded-xl p-3.5 shadow-sm flex items-center space-x-3 transition-colors ${
+                isLight ? 'bg-white border-slate-200' : 'bg-slate-900/90 border-slate-800/80'
+              }`}>
+                <div className="p-2.5 bg-indigo-50 border border-indigo-200 rounded-lg text-indigo-600">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className={`text-[11px] font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Admin Portal</div>
+                  <div className="text-sm font-bold font-mono text-indigo-600">Authenticated</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Admin Tabs */}
+            {adminTab === 'documents' ? (
+              <DocumentList
+                currentRole={currentRole}
+                currentUserName={currentUserName}
+                onPreview={(doc) => setPreviewState({ doc, isDownload: false })}
+                onDownload={(doc) => setPreviewState({ doc, isDownload: true })}
+              />
+            ) : (
+              <AuditLogViewer />
+            )}
+          </div>
+        )}
       </main>
+
+      {/* GATE 2: Admin Portal Passcode Modal */}
+      {showAdminModal && (
+        <AdminPinModal
+          onClose={() => setShowAdminModal(false)}
+          onSuccess={handleAdminSuccess}
+        />
+      )}
+
+      {/* Upload Modal */}
+      {isUploadModalOpen && (
+        <DocumentUploadModal
+          currentRole={currentRole}
+          currentUserName={currentUserName}
+          onClose={() => setIsUploadModalOpen(false)}
+          onSuccess={() => {
+            setIsUploadModalOpen(false);
+          }}
+        />
+      )}
+
+      {/* Preview / Download Modal */}
+      {previewState && (
+        <DocumentPreviewModal
+          doc={previewState.doc}
+          currentRole={currentRole}
+          currentUserName={currentUserName}
+          isDownloadMode={previewState.isDownload}
+          onClose={() => setPreviewState(null)}
+        />
+      )}
+
+      {/* Footer */}
+      <footer className={`border-t py-4 text-center text-xs font-mono transition-colors ${
+        isLight ? 'bg-white border-slate-200 text-slate-500' : 'bg-slate-950 border-slate-900 text-slate-500'
+      }`}>
+        โรงเรียนฝางวิทยายน | Electronic Document Management System (EDMS) | Powered by Supabase & Google Drive
+      </footer>
     </div>
   );
 }
