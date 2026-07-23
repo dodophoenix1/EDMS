@@ -92,4 +92,5 @@ npx vercel --prod
 
 พัฒนาแจกฟรีสำหรับโรงเรียนและสถานศึกษา เพื่อขับเคลื่อนงานสารบัญไทยสู่ระบบดิจิทัลแบบ 100% 
 
+**Dev by N. Vetchagama**  
 **Powered by**: โรงเรียนฝางวิทยายน | Next.js | Supabase | Google Drive API | Gemini AI
