@@ -32,8 +32,8 @@
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/dodophoenix1/school-edms.git
-cd school-edms
+git clone https://github.com/dodophoenix1/EDMS.git
+cd EDMS
 ```
 
 ### 2. Install Dependencies
