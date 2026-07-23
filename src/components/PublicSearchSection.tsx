@@ -17,6 +17,8 @@ export const PublicSearchSection: React.FC<PublicSearchSectionProps> = ({
   theme,
 }) => {
   const isLight = theme === 'light';
+  const isDemo = process.env.NEXT_PUBLIC_IS_DEMO === 'true';
+
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedSummaryDoc, setSelectedSummaryDoc] = useState<DocumentItem | null>(null);
@@ -56,7 +58,7 @@ export const PublicSearchSection: React.FC<PublicSearchSectionProps> = ({
               : 'bg-emerald-950/80 border-emerald-800 text-emerald-400'
           }`}>
             <Building2 className="w-3.5 h-3.5" />
-            <span>ระบบสารบัญดิจิทัล โรงเรียนฝางวิทยายน</span>
+            <span>{isDemo ? 'ระบบสารบัญดิจิทัล (EDMS Demo)' : 'ระบบสารบัญดิจิทัล โรงเรียนฝางวิทยายน'}</span>
           </div>
           <h2 className={`text-xl sm:text-2xl font-bold tracking-wide ${isLight ? 'text-slate-900' : 'text-white'}`}>
             ค้นหาหนังสือราชการและเอกสารคำสั่ง
@@ -179,11 +181,11 @@ export const PublicSearchSection: React.FC<PublicSearchSectionProps> = ({
           <div className="flex items-center space-x-2">
             <FileText className="w-4 h-4 text-emerald-600" />
             <h3 className={`font-bold text-sm ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>
-              รายการหนังสือราชการ โรงเรียนฝางวิทยายน ({documents.length} รายการ)
+              รายการหนังสือราชการ ({documents.length} รายการ)
             </h3>
           </div>
           <span className={`text-[11px] font-mono ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>
-            Public View
+            {isDemo ? 'EDMS Demo Mode' : 'Public View'}
           </span>
         </div>
 
@@ -248,7 +250,7 @@ export const PublicSearchSection: React.FC<PublicSearchSectionProps> = ({
                       onClick={() => setSelectedSummaryDoc(doc)}
                       className="mt-1 text-[11px] text-purple-600 hover:text-purple-700 flex items-center font-medium"
                     >
-                      <Sparkles className="w-3 h-3 mr-1" /> ดูสรุปสาระสำคัญโดย Gemini AI
+                      <Sparkles className="w-3.5 h-3.5 mr-1" /> ดูสรุปสาระสำคัญโดย Gemini AI
                     </button>
                   )}
                 </div>

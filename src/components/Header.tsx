@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Search, ShieldCheck, PlusCircle, Settings, History, LogOut, Lock, Sun, Moon } from 'lucide-react';
+import { Search, ShieldCheck, PlusCircle, Settings, History, LogOut, Lock, Sun, Moon, BookOpen } from 'lucide-react';
 import { UserRole } from '@/lib/types';
 
 interface HeaderProps {
@@ -33,6 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleTheme,
 }) => {
   const isLight = theme === 'light';
+  const isDemo = process.env.NEXT_PUBLIC_IS_DEMO === 'true';
 
   return (
     <header className={`sticky top-0 z-40 transition-colors backdrop-blur-xl border-b ${
@@ -40,29 +41,35 @@ export const Header: React.FC<HeaderProps> = ({
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo & Fang Wittayayon School Crest (Pure White Background) */}
+          {/* Logo & School Crest (Dynamic Demo vs Production) */}
           <div className="flex items-center space-x-3">
-            <div className="relative w-10 h-10 rounded-full overflow-hidden border border-emerald-500 shadow-sm p-1 bg-white flex-shrink-0 flex items-center justify-center">
-              <Image
-                src="/logo.png"
-                alt="ตราโรงเรียนฝางวิทยายน"
-                width={36}
-                height={36}
-                className="w-full h-full object-contain"
-                unoptimized
-              />
-            </div>
+            {isDemo ? (
+              <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-sm text-white flex-shrink-0">
+                <BookOpen className="w-6 h-6" />
+              </div>
+            ) : (
+              <div className="relative w-10 h-10 rounded-full overflow-hidden border border-emerald-500 shadow-sm p-1 bg-white flex-shrink-0 flex items-center justify-center">
+                <Image
+                  src="/logo.png"
+                  alt="ตราโรงเรียน"
+                  width={36}
+                  height={36}
+                  className="w-full h-full object-contain"
+                  unoptimized
+                />
+              </div>
+            )}
             <div>
               <div className="flex items-center space-x-2">
                 <h1 className={`text-base font-bold tracking-wide ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                  โรงเรียนฝางวิทยายน{' '}
+                  {isDemo ? 'โรงเรียนตัวอย่าง (EDMS Demo)' : 'โรงเรียนฝางวิทยายน'}{' '}
                   <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
                     isLight ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-emerald-400 bg-emerald-950 border-emerald-800'
-                  }`}>EDMS</span>
+                  }`}>{isDemo ? 'DEMO SITE' : 'EDMS'}</span>
                 </h1>
               </div>
               <p className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                ระบบสารบัญและคลังหนังสือราชการอิเล็กทรอนิกส์
+                {isDemo ? 'ระบบสารบัญดิจิทัลและคลังหนังสือราชการตัวอย่าง' : 'ระบบสารบัญและคลังหนังสือราชการอิเล็กทรอนิกส์'}
               </p>
             </div>
           </div>
@@ -204,7 +211,7 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'text-emerald-400 bg-emerald-950/60 border-emerald-800/60'
               }`}>
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span className="hidden sm:inline">โรงเรียนฝางวิทยายน</span>
+                <span className="hidden sm:inline">{isDemo ? 'EDMS Demo' : 'โรงเรียนฝางวิทยายน'}</span>
               </div>
             )}
           </div>

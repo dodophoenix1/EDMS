@@ -14,13 +14,15 @@ import { AdminPinModal } from '@/components/AdminPinModal';
 import { FileText, ShieldCheck, HardDrive, Cpu } from 'lucide-react';
 
 export default function Home() {
-  // Theme State: Default to Light Mode for clear & comfortable reading
+  const isDemo = process.env.NEXT_PUBLIC_IS_DEMO === 'true';
+
+  // Theme State: Default to Light Mode
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
-  // Gate 1: Main Website Access PIN (1234)
-  const [isPublicPinAuthenticated, setIsPublicPinAuthenticated] = useState<boolean>(false);
+  // Gate 1: Website Access PIN (Bypassed completely in Demo Mode!)
+  const [isPublicPinAuthenticated, setIsPublicPinAuthenticated] = useState<boolean>(isDemo);
 
-  // Gate 2: Admin Portal Passcode (admin2569)
+  // Gate 2: Admin Portal Passcode
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
   const [showAdminModal, setShowAdminModal] = useState<boolean>(false);
 
@@ -28,7 +30,9 @@ export default function Home() {
   const [adminTab, setAdminTab] = useState<'documents' | 'audit_logs'>('documents');
 
   const [currentRole, setCurrentRole] = useState<UserRole>('super_admin');
-  const [currentUserName, setCurrentUserName] = useState<string>('นายสมชาย ใจดี (ผู้อำนวยการโรงเรียนฝางวิทยายน)');
+  const [currentUserName, setCurrentUserName] = useState<string>(
+    isDemo ? 'นายสมชาย ใจดี (ผู้ดูแลระบบ Demo)' : 'นายสมชาย ใจดี (ผู้อำนวยการโรงเรียนฝางวิทยายน)'
+  );
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
   const [previewState, setPreviewState] = useState<{
@@ -74,8 +78,8 @@ export default function Home() {
     <div className={`min-h-screen flex flex-col font-sans transition-colors selection:bg-emerald-500 selection:text-white ${
       isLight ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-100'
     }`}>
-      {/* GATE 1: Public Website Access Gate (PIN Verification) */}
-      {!isPublicPinAuthenticated && (
+      {/* GATE 1: Public Website Access Gate (Bypassed if isDemo === true) */}
+      {!isPublicPinAuthenticated && !isDemo && (
         <PublicPinGateModal onSuccess={() => setIsPublicPinAuthenticated(true)} />
       )}
 
@@ -96,8 +100,8 @@ export default function Home() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* PUBLIC SEARCH VIEW ( Shown after PIN 1234 verification ) */}
-        {viewMode === 'public' && isPublicPinAuthenticated && (
+        {/* PUBLIC SEARCH VIEW ( Shown immediately in Demo Mode ) */}
+        {viewMode === 'public' && (isPublicPinAuthenticated || isDemo) && (
           <PublicSearchSection
             onPreview={(doc) => setPreviewState({ doc, isDownload: false })}
             onDownload={(doc) => setPreviewState({ doc, isDownload: true })}
@@ -124,7 +128,9 @@ export default function Home() {
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className={`text-[11px] font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>โรงเรียนฝางวิทยายน</div>
+                  <div className={`text-[11px] font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                    {isDemo ? 'School EDMS Demo' : 'โรงเรียนฝางวิทยายน'}
+                  </div>
                   <div className="text-sm font-bold font-mono text-emerald-600">Supabase Connected</div>
                 </div>
               </div>
@@ -216,7 +222,7 @@ export default function Home() {
       <footer className={`border-t py-4 text-center text-xs font-mono transition-colors ${
         isLight ? 'bg-white border-slate-200 text-slate-500' : 'bg-slate-950 border-slate-900 text-slate-500'
       }`}>
-        โรงเรียนฝางวิทยายน | Electronic Document Management System (EDMS) | Powered by Supabase & Google Drive
+        {isDemo ? 'School EDMS Demo' : 'โรงเรียนฝางวิทยายน'} | Electronic Document Management System (EDMS) | Powered by Supabase & Google Drive
       </footer>
     </div>
   );

@@ -42,3 +42,6 @@ set_vercel_env.js
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
+.env*
