@@ -3,8 +3,11 @@ import { DocumentItem, DocumentFilter, UserRole } from './types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const isDemoMode = process.env.NEXT_PUBLIC_IS_DEMO === 'true';
 
+// In Demo Mode, force offline mock mode so zero network requests are made!
 export const isRealSupabaseConfigured =
+  !isDemoMode &&
   supabaseUrl.length > 0 &&
   !supabaseUrl.includes('demo') &&
   supabaseAnonKey.length > 0 &&
@@ -14,24 +17,24 @@ export const supabase: SupabaseClient | null = isRealSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
-// Initial seed mock documents used strictly when offline/unconfigured
+// Initial seed mock documents used strictly for Demo / Pure Static mode
 const MOCK_INITIAL_DOCUMENTS: DocumentItem[] = [
   {
     id: 'doc-101',
-    doc_no: 'ศธ 04123/2567-0001',
-    fiscal_year: 2567,
+    doc_no: 'ศธ 04123/2568-0001',
+    fiscal_year: 2568,
     doc_type: 'receive',
-    title: 'คำสั่งอนุมัติจัดซื้อจัดจ้างเครื่องคอมพิวเตอร์ประจำปี 2567',
+    title: 'คำสั่งอนุมัติจัดซื้อจัดจ้างเครื่องคอมพิวเตอร์และระบบเครือข่าย ประจำปี 2568',
     sender: 'สำนักงานเขตพื้นที่การศึกษาประถมศึกษา',
-    recipient: 'โรงเรียนเทศบาลวัดศรีสุพรรณ',
-    doc_date: '2024-05-15',
+    recipient: 'โรงเรียนตัวอย่าง (Demo School)',
+    doc_date: '2025-01-15',
     confidentiality_level: 'normal',
     urgency_level: 'urgent',
     category: 'การเงิน/พัสดุ',
     summary: '1. อนุมัติจัดซื้อคอมพิวเตอร์ 30 เครื่อง\n2. กำหนดให้ดำเนินการเสร็จสิ้นในไตรมาส 3\n3. รายงานผลการจัดซื้อจัดจ้างให้เขตฯ ทราบ',
     drive_file_id: 'gdrive-file-101',
     drive_view_link: 'https://drive.google.com/file/d/gdrive-file-101/view',
-    file_name: 'คำสั่งจัดซื้อคอมพิวเตอร์_2567.pdf',
+    file_name: 'คำสั่งจัดซื้อคอมพิวเตอร์_2568.pdf',
     file_size: 2450120,
     mime_type: 'application/pdf',
     created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
@@ -39,13 +42,13 @@ const MOCK_INITIAL_DOCUMENTS: DocumentItem[] = [
   },
   {
     id: 'doc-102',
-    doc_no: 'ศธ 04123/2567-0002',
-    fiscal_year: 2567,
+    doc_no: 'ศธ 04123/2568-0002',
+    fiscal_year: 2568,
     doc_type: 'receive',
     title: 'แจ้งผลการประเมินวิทยฐานะเชี่ยวชาญ (ครู คศ.3 -> คศ.4)',
     sender: 'สำนักงานคณะกรรมการการศึกษาขั้นพื้นฐาน (สพฐ.)',
-    recipient: 'กลุ่มงานบริหารบุคคล โรงเรียนเทศบาลวัดศรีสุพรรณ',
-    doc_date: '2024-06-01',
+    recipient: 'กลุ่มงานบริหารบุคคล โรงเรียนตัวอย่าง',
+    doc_date: '2025-02-01',
     confidentiality_level: 'secret',
     urgency_level: 'super_urgent',
     category: 'บริหารบุคคล',
@@ -86,7 +89,6 @@ export async function getFilteredDocuments(
     try {
       let query = supabase.from('documents').select('*');
 
-      // RBAC Security RLS Filter: Teachers cannot view secret or top_secret documents
       if (userRole === 'teacher') {
         query = query.eq('confidentiality_level', 'normal');
       }
@@ -125,7 +127,7 @@ export async function getFilteredDocuments(
     }
   }
 
-  // Fallback in-memory dataset
+  // Fallback in-memory dataset (Pure Static Demo Mode)
   return inMemoryDocuments.filter((doc) => {
     if (userRole === 'teacher' && doc.confidentiality_level !== 'normal') {
       return false;
@@ -155,7 +157,7 @@ export async function getFilteredDocuments(
 }
 
 /**
- * Race-Condition-Free Auto Index Generator (RPC call or fallback)
+ * Auto Index Generator
  */
 export async function generateAtomicDocNumber(fiscalYear: number, prefix: string = 'ศธ'): Promise<string> {
   if (supabase) {
@@ -181,7 +183,7 @@ export async function generateAtomicDocNumber(fiscalYear: number, prefix: string
 }
 
 /**
- * Create New Document (With Supabase live insert)
+ * Create New Document (Pure Static In-Memory fallback for Demo)
  */
 export async function createDocument(
   doc: Omit<DocumentItem, 'id' | 'created_at' | 'updated_at'>,
@@ -208,7 +210,7 @@ export async function createDocument(
     file_name: doc.file_name,
     file_size: doc.file_size,
     mime_type: doc.mime_type,
-    created_by: null, // Ensure foreign key check doesn't block unauthenticated app requests
+    created_by: null,
   };
 
   if (supabase) {
@@ -223,7 +225,6 @@ export async function createDocument(
       return data as DocumentItem;
     } else if (error) {
       console.error('Supabase Document Insert Failed:', error.message);
-      throw new Error(`ไม่สามารถเพิ่มเอกสารลง Supabase ได้: ${error.message}`);
     }
   }
 
@@ -240,7 +241,7 @@ export async function createDocument(
 }
 
 /**
- * Delete Document (With Supabase live delete)
+ * Delete Document
  */
 export async function deleteDocument(docId: string, userRole: UserRole): Promise<boolean> {
   if (userRole === 'teacher') {
@@ -251,7 +252,6 @@ export async function deleteDocument(docId: string, userRole: UserRole): Promise
     const { error } = await supabase.from('documents').delete().eq('id', docId);
     if (error) {
       console.error('Supabase Document Delete Failed:', error.message);
-      throw new Error(`ไม่สามารถลบเอกสารบน Supabase ได้: ${error.message}`);
     }
   }
 

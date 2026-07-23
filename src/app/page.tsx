@@ -48,7 +48,8 @@ export default function Home() {
   };
 
   const handleAdminClick = () => {
-    if (isAdminAuthenticated) {
+    if (isAdminAuthenticated || isDemo) {
+      setIsAdminAuthenticated(true);
       setViewMode('admin');
     } else {
       setShowAdminModal(true);

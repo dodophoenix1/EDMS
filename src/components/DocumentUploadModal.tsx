@@ -26,7 +26,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
   const [docNo, setDocNo] = useState<string>('กำลังสร้างเลขรับอัตโนมัติ...');
   const [title, setTitle] = useState<string>('');
   const [sender, setSender] = useState<string>('สำนักงานเขตพื้นที่การศึกษา');
-  const [recipient, setRecipient] = useState<string>('โรงเรียนเทศบาลวัดศรีสุพรรณ');
+  const [recipient, setRecipient] = useState<string>('โรงเรียนตัวอย่าง (Demo School)');
   const [docDate, setDocDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [confidentiality, setConfidentiality] = useState<ConfidentialityLevel>('normal');
   const [urgency, setUrgency] = useState<UrgencyLevel>('normal');
@@ -111,65 +111,76 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
     setUploading(true);
     setUploadProgress(10);
 
+    const isDemo = process.env.NEXT_PUBLIC_IS_DEMO === 'true';
+
     try {
-      setStatusMessage('กำลังขอ Access Token จาก Google Drive...');
-      const { access_token, folderId } = await getGoogleDriveAccessTokenAction();
+      let realFileId = 'demo-gdrive-file-id';
+      let realViewLink = 'https://drive.google.com';
 
-      setUploadProgress(30);
-      setStatusMessage(`กำลังส่งไฟล์เข้า Google Drive โฟลเดอร์ (ID: ${folderId})...`);
+      if (isDemo) {
+        setStatusMessage('[Demo Mode] จำลองการประมวลผลไฟล์และลงทะเบียนแบบ Pure Static...');
+        setUploadProgress(50);
+        await new Promise((res) => setTimeout(res, 300));
+        setUploadProgress(90);
+      } else {
+        setStatusMessage('กำลังขอ Access Token จาก Google Drive...');
+        const { access_token, folderId } = await getGoogleDriveAccessTokenAction();
 
-      // Prepare Google Drive API v3 Multipart Upload directly from browser
-      const metadata = {
-        name: selectedFile.name,
-        parents: [folderId],
-      };
+        setUploadProgress(30);
+        setStatusMessage(`กำลังส่งไฟล์เข้า Google Drive โฟลเดอร์ (ID: ${folderId})...`);
 
-      const formData = new FormData();
-      formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-      formData.append('file', selectedFile);
+        // Prepare Google Drive API v3 Multipart Upload directly from browser
+        const metadata = {
+          name: selectedFile.name,
+          parents: [folderId],
+        };
 
-      const uploadRes = await fetch(
-        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink',
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${access_token}`,
-          },
-          body: formData,
+        const formData = new FormData();
+        formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+        formData.append('file', selectedFile);
+
+        const uploadRes = await fetch(
+          'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink',
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${access_token}`,
+            },
+            body: formData,
+          }
+        );
+
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text();
+          throw new Error('Google Drive Upload Failed: ' + errText);
         }
-      );
 
-      if (!uploadRes.ok) {
-        const errText = await uploadRes.text();
-        throw new Error('Google Drive Upload Failed: ' + errText);
+        const fileData = await uploadRes.json();
+        realFileId = fileData.id;
+        realViewLink = fileData.webViewLink || `https://drive.google.com/file/d/${realFileId}/view`;
+
+        setUploadProgress(70);
+        setStatusMessage('กำลังตั้งค่าสิทธิ์เข้าถึงไฟล์ใน Google Drive...');
+
+        try {
+          await fetch(`https://www.googleapis.com/drive/v3/files/${realFileId}/permissions`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              role: 'reader',
+              type: 'anyone',
+            }),
+          });
+        } catch (permErr) {
+          console.warn('Set Google Drive permission error:', permErr);
+        }
+
+        setUploadProgress(90);
+        setStatusMessage('อัปโหลดไฟล์เข้า Google Drive สำเร็จ! กำลังบันทึกเข้า Supabase...');
       }
-
-      const fileData = await uploadRes.json();
-      const realFileId = fileData.id;
-      const realViewLink = fileData.webViewLink || `https://drive.google.com/file/d/${realFileId}/view`;
-
-      setUploadProgress(70);
-      setStatusMessage('กำลังตั้งค่าสิทธิ์เข้าถึงไฟล์ใน Google Drive...');
-
-      // Make file viewable by anyone with link so preview works instantly
-      try {
-        await fetch(`https://www.googleapis.com/drive/v3/files/${realFileId}/permissions`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            role: 'reader',
-            type: 'anyone',
-          }),
-        });
-      } catch (permErr) {
-        console.warn('Set Google Drive permission error:', permErr);
-      }
-
-      setUploadProgress(90);
-      setStatusMessage('อัปโหลดไฟล์เข้า Google Drive สำเร็จ! กำลังบันทึกเข้า Supabase...');
 
       // Save Record into Supabase
       const createdDoc = await createDocument(
